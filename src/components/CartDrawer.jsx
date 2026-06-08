@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 import { Link } from 'react-router-dom';
 import { PRODUCT_ICONS } from '../data/products';
 
@@ -9,6 +10,7 @@ function fmt(n) {
 
 export default function CartDrawer({ isOpen, onClose }) {
   const { items, removeItem, updateQty, subtotal, totalCount } = useCart();
+  const { showToast } = useToast();
   const shipping = items.length > 0 ? 25.9 : 0;
   const total = subtotal + shipping;
 
@@ -43,7 +45,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                   <span>{item.qty}</span>
                   <button onClick={() => updateQty(item.id, item.qty + 1)}>+</button>
                 </div>
-                <button className="ci-remove" onClick={() => removeItem(item.id)}>
+                <button className="ci-remove" onClick={() => { removeItem(item.id); showToast(`${item.name} removido do carrinho`, 'info'); }}>
                   <X size={14} />
                 </button>
               </div>

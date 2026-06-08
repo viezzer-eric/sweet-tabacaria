@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle, MapPin, Tag, Zap, Lock, Check, Loader, ArrowLeft, ArrowRight, Clock, Truck, DollarSign } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 import { PRODUCT_ICONS } from '../data/products';
 
 const VALID_COUPONS = {
@@ -28,6 +29,7 @@ function PixIcon() {
 
 export default function CheckoutPage() {
   const { items, subtotal, clearCart } = useCart();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [couponInput, setCouponInput] = useState('');
@@ -76,9 +78,11 @@ export default function CheckoutPage() {
       setAppliedCoupon({ ...coupon, code });
       setCouponSuccess(`Cupom aplicado: ${coupon.label}`);
       setCouponError('');
+      showToast(`Cupom ${code} aplicado! ${coupon.label}`, 'success');
     } else {
       setCouponError('Cupom inválido ou expirado.');
       setCouponSuccess('');
+      showToast('Cupom inválido ou expirado', 'error');
     }
   }
 
@@ -92,6 +96,7 @@ export default function CheckoutPage() {
   function copyPix() {
     navigator.clipboard.writeText(PIX_FAKE_CODE).catch(() => {});
     setPixCopied(true);
+    showToast('Chave PIX copiada!', 'success');
     setTimeout(() => setPixCopied(false), 3000);
   }
 

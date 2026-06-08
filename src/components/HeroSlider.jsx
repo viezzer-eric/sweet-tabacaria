@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Flame } from 'lucide-react';
 import { KITS_DATA, PRODUCT_ICONS } from '../data/products';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 
 export default function HeroSlider() {
   const [active, setActive] = useState(0);
   const { addItem } = useCart();
+  const { showToast } = useToast();
   const timeoutRef = useRef(null);
 
   // Avança o slide de forma cíclica
@@ -67,14 +69,15 @@ export default function HeroSlider() {
 
                 <button
                   className="btn-gold btn-large"
-                  onClick={() =>
+                  onClick={() => {
                     addItem({
                       id: k.id,
                       name: k.name,
                       price: k.price,
                       icon: k.icon,
-                    })
-                  }
+                    });
+                    showToast(`${k.name} adicionado ao carrinho`);
+                  }}
                 >
                   Garantir Kit
                 </button>

@@ -1,5 +1,6 @@
 import { ShoppingCart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 import { PRODUCT_ICONS } from '../data/products';
 
 function fmt(n) {
@@ -8,7 +9,13 @@ function fmt(n) {
 
 export default function ProductCard({ product }) {
   const { addItem } = useCart();
+  const { showToast } = useToast();
   const IconComp = PRODUCT_ICONS[product.icon] || null;
+
+  function handleAdd() {
+    addItem(product);
+    showToast(`${product.name} adicionado ao carrinho`);
+  }
 
   return (
     <article className="pcard">
@@ -27,7 +34,7 @@ export default function ProductCard({ product }) {
             <span className="pold">{fmt(product.oldPrice)}</span>
           )}
         </div>
-        <button className="padd" onClick={() => addItem(product)}>
+        <button className="padd" onClick={handleAdd}>
           <ShoppingCart size={16} aria-hidden="true" />
           Adicionar
         </button>
