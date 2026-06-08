@@ -1,4 +1,6 @@
+import { ShoppingCart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { PRODUCT_ICONS } from '../data/products';
 
 function fmt(n) {
   return `R$ ${n.toFixed(2).replace('.', ',')}`;
@@ -6,6 +8,7 @@ function fmt(n) {
 
 export default function ProductCard({ product }) {
   const { addItem } = useCart();
+  const IconComp = PRODUCT_ICONS[product.icon] || null;
 
   return (
     <article className="pcard">
@@ -13,7 +16,7 @@ export default function ProductCard({ product }) {
         {product.badge && (
           <span className={`bdg ${product.badge}`}>{product.badge}</span>
         )}
-        <span>{product.icon}</span>
+        {IconComp && <IconComp size={44} aria-hidden="true" />}
       </div>
       <div className="pinfo">
         <span className="pcat">{product.category}</span>
@@ -25,7 +28,8 @@ export default function ProductCard({ product }) {
           )}
         </div>
         <button className="padd" onClick={() => addItem(product)}>
-          🛒 Adicionar
+          <ShoppingCart size={16} aria-hidden="true" />
+          Adicionar
         </button>
       </div>
     </article>

@@ -1,5 +1,7 @@
+import { X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
+import { PRODUCT_ICONS } from '../data/products';
 
 function fmt(n) {
   return `R$ ${n.toFixed(2).replace('.', ',')}`;
@@ -21,7 +23,7 @@ export default function CartDrawer({ isOpen, onClose }) {
         <div className="cdh">
           <h3>Seu Carrinho</h3>
           <button className="cdc" onClick={onClose} aria-label="Fechar carrinho">
-            ✕
+            <X size={18} />
           </button>
         </div>
 
@@ -31,7 +33,7 @@ export default function CartDrawer({ isOpen, onClose }) {
           ) : (
             items.map((item) => (
               <div key={item.id} className="cart-item">
-                <div className="ci-icon">{item.icon}</div>
+                <div className="ci-icon">{(() => { const Ic = PRODUCT_ICONS[item.icon]; return Ic ? <Ic size={24} aria-hidden="true" /> : null; })()}</div>
                 <div className="ci-info">
                   <p className="ci-name">{item.name}</p>
                   <p className="ci-price">{fmt(item.price)}</p>
@@ -42,7 +44,7 @@ export default function CartDrawer({ isOpen, onClose }) {
                   <button onClick={() => updateQty(item.id, item.qty + 1)}>+</button>
                 </div>
                 <button className="ci-remove" onClick={() => removeItem(item.id)}>
-                  ✕
+                  <X size={14} />
                 </button>
               </div>
             ))

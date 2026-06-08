@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { CheckCircle, MapPin, Tag, Zap, Lock, Check, Loader, ArrowLeft, ArrowRight, Clock, Truck, DollarSign } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { PRODUCT_ICONS } from '../data/products';
 
 const VALID_COUPONS = {
   'SWEET10': { type: 'percent', value: 10, label: '10% de desconto' },
@@ -72,7 +74,7 @@ export default function CheckoutPage() {
     const coupon = VALID_COUPONS[code];
     if (coupon) {
       setAppliedCoupon({ ...coupon, code });
-      setCouponSuccess(`✓ Cupom aplicado: ${coupon.label}`);
+      setCouponSuccess(`Cupom aplicado: ${coupon.label}`);
       setCouponError('');
     } else {
       setCouponError('Cupom inválido ou expirado.');
@@ -107,7 +109,7 @@ export default function CheckoutPage() {
     return (
       <div className="checkout-success">
         <div className="success-card">
-          <div className="success-icon">✅</div>
+          <CheckCircle size={48} className="success-icon" aria-hidden="true" />
           <h2>Pedido recebido!</h2>
           <p>Seu pagamento PIX está sendo confirmado.<br />Você receberá uma confirmação em breve.</p>
           <div className="success-order">
@@ -125,7 +127,7 @@ export default function CheckoutPage() {
     <div className="checkout-page">
       <div className="checkout-topbar">
         <Link to="/" className="checkout-back">
-          ← Sweet Headshop
+          <ArrowLeft size={16} aria-hidden="true" /> Sweet Headshop
         </Link>
         <div className="checkout-steps">
           <span className="step active">Dados</span>
@@ -139,7 +141,6 @@ export default function CheckoutPage() {
       <form className="checkout-body" onSubmit={placeOrder}>
         <div className="checkout-left">
 
-          {/* Criar Conta */}
           <section className="co-section">
             <div className="co-section-header">
               <h3>Identificação</h3>
@@ -214,11 +215,10 @@ export default function CheckoutPage() {
             )}
           </section>
 
-          {/* Endereço de Entrega */}
           <section className="co-section">
             <div className="co-section-header">
               <h3>Endereço de Entrega</h3>
-              <span className="co-badge">🚚 Delivery</span>
+              <span className="co-badge"><Truck size={14} aria-hidden="true" /> Delivery</span>
             </div>
 
             <div className="field-row">
@@ -278,11 +278,10 @@ export default function CheckoutPage() {
             </div>
 
             <div className="delivery-note">
-              📍 Entregamos em: Lapa · Perdizes · Vila Romana · Água Branca · V. Madalena
+              <MapPin size={14} aria-hidden="true" /> Entregamos em: Lapa · Perdizes · Vila Romana · Água Branca · V. Madalena
             </div>
           </section>
 
-          {/* Cupom de Desconto */}
           <section className="co-section">
             <div className="co-section-header">
               <h3>Cupom de Desconto</h3>
@@ -290,7 +289,7 @@ export default function CheckoutPage() {
 
             {appliedCoupon ? (
               <div className="coupon-applied">
-                <span className="coupon-tag">🏷️ {appliedCoupon.code}</span>
+                <span className="coupon-tag"><Tag size={14} aria-hidden="true" /> {appliedCoupon.code}</span>
                 <span className="coupon-desc">{appliedCoupon.label}</span>
                 <button type="button" className="coupon-remove" onClick={removeCoupon}>Remover</button>
               </div>
@@ -310,10 +309,9 @@ export default function CheckoutPage() {
               </div>
             )}
             {couponError && <p className="coupon-error">{couponError}</p>}
-            {couponSuccess && <p className="coupon-success">{couponSuccess}</p>}
+            {couponSuccess && <p className="coupon-success"><Check size={14} aria-hidden="true" /> {couponSuccess}</p>}
           </section>
 
-          {/* Pagamento PIX */}
           <section className="co-section">
             <div className="co-section-header">
               <h3>Forma de Pagamento</h3>
@@ -348,37 +346,39 @@ export default function CheckoutPage() {
                 <div className="pix-key-value">
                   <code>{PIX_KEY}</code>
                   <button type="button" className="pix-copy" onClick={copyPix}>
-                    {pixCopied ? '✓ Copiado!' : 'Copiar chave'}
+                    {pixCopied ? <><Check size={14} aria-hidden="true" /> Copiado!</> : 'Copiar chave'}
                   </button>
                 </div>
               </div>
 
               <p className="pix-notice">
-                ⚡ O pedido é confirmado assim que o pagamento é identificado (geralmente em segundos).
+                <Zap size={14} aria-hidden="true" /> O pedido é confirmado assim que o pagamento é identificado (geralmente em segundos).
               </p>
             </div>
           </section>
         </div>
 
-        {/* Resumo do Pedido */}
         <div className="checkout-right">
           <div className="order-summary">
             <h3>Resumo do Pedido</h3>
 
             <div className="order-items">
               {items.length === 0 ? (
-                <p className="empty-cart-msg">Carrinho vazio. <Link to="/">Adicionar itens →</Link></p>
+                <p className="empty-cart-msg">Carrinho vazio. <Link to="/">Adicionar itens <ArrowRight size={12} aria-hidden="true" /></Link></p>
               ) : (
-                items.map((item) => (
-                  <div key={item.id} className="order-item">
-                    <span className="oi-icon">{item.icon}</span>
-                    <div className="oi-info">
-                      <span className="oi-name">{item.name}</span>
-                      <span className="oi-qty">× {item.qty}</span>
+                items.map((item) => {
+                  const OiIcon = PRODUCT_ICONS[item.icon];
+                  return (
+                    <div key={item.id} className="order-item">
+                      <span className="oi-icon">{OiIcon ? <OiIcon size={20} aria-hidden="true" /> : null}</span>
+                      <div className="oi-info">
+                        <span className="oi-name">{item.name}</span>
+                        <span className="oi-qty">× {item.qty}</span>
+                      </div>
+                      <span className="oi-price">{fmt(item.price * item.qty)}</span>
                     </div>
-                    <span className="oi-price">{fmt(item.price * item.qty)}</span>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -403,7 +403,7 @@ export default function CheckoutPage() {
                 <span>Total</span>
                 <span>{fmt(total)}</span>
               </div>
-              <p className="pix-value-note">💰 Via PIX: {fmt(total)}</p>
+              <p className="pix-value-note"><DollarSign size={14} aria-hidden="true" /> Via PIX: {fmt(total)}</p>
             </div>
 
             <button
@@ -412,7 +412,7 @@ export default function CheckoutPage() {
               disabled={items.length === 0 || isProcessing}
             >
               {isProcessing ? (
-                <span className="processing">⏳ Processando...</span>
+                <span className="processing"><Loader size={18} className="spin" aria-hidden="true" /> Processando...</span>
               ) : (
                 <>
                   <PixIcon /> Confirmar e Pagar via PIX
@@ -421,7 +421,7 @@ export default function CheckoutPage() {
             </button>
 
             <p className="checkout-security">
-              🔒 Ambiente seguro · Dados protegidos
+              <Lock size={14} aria-hidden="true" /> Ambiente seguro · Dados protegidos
             </p>
           </div>
         </div>

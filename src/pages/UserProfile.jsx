@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { User, MapPin, Lock, Package, ShieldAlert, ShoppingBag, Wrench, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const MOCK_ORDER_HISTORY = [
@@ -40,19 +41,16 @@ export default function UserProfile() {
   const [activeTab, setActiveTab] = useState('profile');
   const [saved, setSaved] = useState('');
 
-  // Profile fields
   const [name, setName] = useState(currentUser?.name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
 
-  // Address fields
   const [street, setStreet] = useState(currentUser?.address?.street || '');
   const [number, setNumber] = useState(currentUser?.address?.number || '');
   const [complement, setComplement] = useState(currentUser?.address?.complement || '');
   const [neighborhood, setNeighborhood] = useState(currentUser?.address?.neighborhood || '');
   const [cep, setCep] = useState(currentUser?.address?.cep || '');
 
-  // Password
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
@@ -107,23 +105,23 @@ export default function UserProfile() {
   }
 
   const tabs = [
-    { id: 'profile', icon: '👤', label: 'Meu Perfil' },
-    { id: 'address', icon: '📍', label: 'Endereço' },
-    { id: 'password', icon: '🔒', label: 'Senha' },
-    { id: 'orders', icon: '📦', label: 'Pedidos' },
+    { id: 'profile', icon: User, label: 'Meu Perfil' },
+    { id: 'address', icon: MapPin, label: 'Endereço' },
+    { id: 'password', icon: Lock, label: 'Senha' },
+    { id: 'orders', icon: Package, label: 'Pedidos' },
   ];
 
   return (
     <div className="profile-page">
-      {/* Top bar */}
       <header className="profile-header">
-        <Link to="/" className="profile-brand">← Sweet Headshop</Link>
+        <Link to="/" className="profile-brand">
+          <ArrowLeft size={16} aria-hidden="true" /> Sweet Headshop
+        </Link>
         <span className="profile-header-title">Minha Conta</span>
         <button className="profile-logout-btn" onClick={handleLogout}>Sair</button>
       </header>
 
       <div className="profile-body">
-        {/* Sidebar */}
         <aside className="profile-sidebar">
           <div className="profile-user-card">
             <Avatar name={currentUser.name} size={64} />
@@ -131,7 +129,11 @@ export default function UserProfile() {
               <span className="puc-name">{currentUser.name}</span>
               <span className="puc-email">{currentUser.email}</span>
               <span className="puc-badge">
-                {currentUser.role === 'admin' ? '🛡 Admin' : '🛒 Cliente'}
+                {currentUser.role === 'admin' ? (
+                  <><ShieldAlert size={14} aria-hidden="true" /> Admin</>
+                ) : (
+                  <><ShoppingBag size={14} aria-hidden="true" /> Cliente</>
+                )}
               </span>
             </div>
           </div>
@@ -150,26 +152,28 @@ export default function UserProfile() {
           </div>
 
           <nav className="profile-nav">
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                className={`pnav-btn${activeTab === t.id ? ' active' : ''}`}
-                onClick={() => setActiveTab(t.id)}
-              >
-                <span className="pnav-icon">{t.icon}</span>
-                {t.label}
-              </button>
-            ))}
+            {tabs.map((t) => {
+              const TabIcon = t.icon;
+              return (
+                <button
+                  key={t.id}
+                  className={`pnav-btn${activeTab === t.id ? ' active' : ''}`}
+                  onClick={() => setActiveTab(t.id)}
+                >
+                  <TabIcon size={18} className="pnav-icon" aria-hidden="true" />
+                  {t.label}
+                </button>
+              );
+            })}
             {currentUser.role === 'admin' && (
               <Link to="/admin" className="pnav-btn pnav-admin">
-                <span className="pnav-icon">🔧</span>
+                <Wrench size={18} className="pnav-icon" aria-hidden="true" />
                 Painel Admin
               </Link>
             )}
           </nav>
         </aside>
 
-        {/* Content */}
         <div className="profile-content">
           {saved && <div className="profile-saved">{saved}</div>}
 
@@ -233,7 +237,7 @@ export default function UserProfile() {
                   <input value={cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
                 </div>
                 <div className="delivery-area-note">
-                  📍 Entregamos em: Lapa · Perdizes · Vila Romana · Água Branca · V. Madalena
+                  <MapPin size={14} aria-hidden="true" /> Entregamos em: Lapa · Perdizes · Vila Romana · Água Branca · V. Madalena
                 </div>
                 <div className="pf-footer">
                   <button type="submit" className="pf-save-btn">Salvar endereço</button>
@@ -259,7 +263,7 @@ export default function UserProfile() {
                       required
                     />
                     <button type="button" className="pass-toggle" onClick={() => setShowPass(v => !v)}>
-                      {showPass ? '🙈' : '👁'}
+                      {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>

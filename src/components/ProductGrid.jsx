@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Package } from 'lucide-react';
 import { PRODUCTS_DATA } from '../data/products';
 import ProductCard from './ProductCard';
 
@@ -38,7 +39,7 @@ export default function ProductGrid({ activeCategory, searchQuery }) {
       <div className="pgrid" id="prodGrid">
         {filtered.length === 0 ? (
           <div className="empty">
-            <div className="ei">📦</div>
+            <Package size={44} className="ei" aria-hidden="true" />
             <h3>Nenhum produto encontrado</h3>
           </div>
         ) : (

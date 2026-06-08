@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { KITS_DATA } from '../data/products';
+import { Flame } from 'lucide-react';
+import { KITS_DATA, PRODUCT_ICONS } from '../data/products';
 import { useCart } from '../context/CartContext';
 
 export default function HeroSlider() {
@@ -45,14 +46,15 @@ export default function HeroSlider() {
     <div className="hero-wrap hero-large">
       <div className="hero-slider">
         <div id="heroSlides">
-          {KITS_DATA.map((k, i) => (
+          {KITS_DATA.map((k, i) => {
+            const KitIcon = PRODUCT_ICONS[k.icon];
+            return (
             <div
               key={k.id}
               className={`hero-slide${i === active ? ' active' : ''}`}
             >
-              {/* Lado Esquerdo: Conteúdo textual expandido */}
               <div className="hc hc-large">
-                <span className="kit-tag">🔥 Kit Promocional</span>
+                <span className="kit-tag"><Flame size={14} aria-hidden="true" /> Kit Promocional</span>
                 <h2>{k.name}</h2>
                 <p>{k.desc}</p>
                 
@@ -78,10 +80,12 @@ export default function HeroSlider() {
                 </button>
               </div>
 
-              {/* Lado Direito: Imagem/Ícone ampliado */}
-              <div className="hi hi-large">{k.icon}</div>
+              <div className="hi hi-large">
+                {KitIcon && <KitIcon size={56} aria-hidden="true" />}
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Setas de navegação */}

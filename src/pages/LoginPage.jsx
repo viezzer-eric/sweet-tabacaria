@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -120,7 +121,7 @@ export default function LoginPage() {
                   onClick={() => setShowPass((v) => !v)}
                   aria-label="Mostrar/ocultar senha"
                 >
-                  {showPass ? '🙈' : '👁'}
+                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
@@ -187,7 +188,7 @@ export default function LoginPage() {
                     className="pass-toggle"
                     onClick={() => setShowPass((v) => !v)}
                   >
-                    {showPass ? '🙈' : '👁'}
+                    {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
@@ -212,7 +213,7 @@ export default function LoginPage() {
         )}
 
         <Link to="/" className="login-skip">
-          ← Continuar sem fazer login
+          <ArrowLeft size={14} aria-hidden="true" /> Continuar sem fazer login
         </Link>
       </div>
     </div>

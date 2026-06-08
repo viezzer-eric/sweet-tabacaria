@@ -1,3 +1,5 @@
+import { Package, FlaskConical, Settings, FileText, Flame, Soup, Gift, Truck, Pill } from 'lucide-react';
+
 export const KITS_DATA = [
   {
     id: 101,
@@ -5,7 +7,7 @@ export const KITS_DATA = [
     desc: 'Tudo o que você precisa em uma caixinha discreta. Inclui seda extra fina, cuia de silicone e isqueiro recarregável.',
     price: 49.90,
     oldPrice: 62.00,
-    icon: '📦',
+    icon: 'gift',
   },
   {
     id: 102,
@@ -13,7 +15,7 @@ export const KITS_DATA = [
     desc: 'Para quem aprecia a pureza. Conta com duas sedas de vidro borossilicato e limpadores anatômicos inclusos.',
     price: 32.00,
     oldPrice: 39.90,
-    icon: '🧪',
+    icon: 'flask',
   },
   {
     id: 103,
@@ -21,22 +23,42 @@ export const KITS_DATA = [
     desc: 'Triturador de policarbonato reforçado de 3 fases emparelhado com os melhores livretos King Size do mercado.',
     price: 55.00,
     oldPrice: 69.00,
-    icon: '⚙️',
+    icon: 'settings',
   },
 ];
 
 export const PRODUCTS_DATA = [
-  { id: 1, name: 'Seda King Size Extra Fina', category: 'Sedas', price: 12.00, oldPrice: 15.00, icon: '📄', badge: 'sale' },
-  { id: 2, name: 'Triturador de Policarbonato', category: 'Trituradores', price: 35.00, icon: '⚙️', badge: 'new' },
-  { id: 3, name: 'Isqueiro Recarregável Premium', category: 'Isqueiros', price: 9.90, icon: '🔥' },
-  { id: 4, name: 'Cuia de Silicone Eco', category: 'Acessórios', price: 22.00, icon: '🥣' },
-  { id: 5, name: 'Seda de Vidro Borossilicato', category: 'Sedas', price: 18.00, icon: '🧪' },
+  { id: 1, name: 'Seda King Size Extra Fina', category: 'Sedas', price: 12.00, oldPrice: 15.00, icon: 'file-text', badge: 'sale' },
+  { id: 2, name: 'Triturador de Policarbonato', category: 'Trituradores', price: 35.00, icon: 'settings', badge: 'new' },
+  { id: 3, name: 'Isqueiro Recarregável Premium', category: 'Isqueiros', price: 9.90, icon: 'flame' },
+  { id: 4, name: 'Cuia de Silicone Eco', category: 'Acessórios', price: 22.00, icon: 'bowl' },
+  { id: 5, name: 'Seda de Vidro Borossilicato', category: 'Sedas', price: 18.00, icon: 'flask' },
 ];
 
 export const CATEGORY_NAMES = {
-  all: '🔥 Ver Tudo',
-  Sedas: '📄 Sedas',
-  Trituradores: '⚙️ Trituradores',
-  Isqueiros: '🔥 Isqueiros',
-  Acessórios: '🥣 Acessórios',
+  all: 'Ver Tudo',
+  Sedas: 'Sedas',
+  Trituradores: 'Trituradores',
+  Isqueiros: 'Isqueiros',
+  Acessórios: 'Acessórios',
+};
+
+export const PROD_CAT_ICONS = {
+  all: Flame,
+  Sedas: FileText,
+  Trituradores: Settings,
+  Isqueiros: Flame,
+  Acessórios: Soup,
+};
+
+export const PRODUCT_ICONS = {
+  gift: Gift,
+  flask: FlaskConical,
+  settings: Settings,
+  'file-text': FileText,
+  flame: Flame,
+  bowl: Soup,
+  package: Package,
+  truck: Truck,
+  pill: Pill,
 };
