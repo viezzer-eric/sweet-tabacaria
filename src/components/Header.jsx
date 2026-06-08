@@ -1,8 +1,10 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
-export default function Header({ onToggleCart, onSearch, theme, onToggleTheme }) {
+export default function Header({ onToggleCart, onSearch }) {
+  const { currentUser } = useAuth();
+
   return (
     <header>
       <div className="hdr">
@@ -23,9 +25,15 @@ export default function Header({ onToggleCart, onSearch, theme, onToggleTheme })
         </div>
 
         <div className="hdr-r">
-          <button className="icon-btn" id="themeBtn" onClick={onToggleTheme}>
-            {theme === 'dark' ? '☀' : '☽'}
-          </button>
+          {currentUser ? (
+            <Link to="/conta" className="icon-btn">
+              👤 {currentUser.name.split(' ')[0]}
+            </Link>
+          ) : (
+            <Link to="/login" className="icon-btn">
+              🔑 Entrar
+            </Link>
+          )}
           <a
             className="icon-btn wpp"
             href="https://wa.me/5511976519275"

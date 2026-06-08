@@ -1,24 +1,26 @@
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
+import { AuthProvider } from './context/AuthContext';
 import HomePage from './pages/HomePage';
-import { useState, useEffect } from 'react';
+import CheckoutPage from './pages/CheckoutPage';
+import AdminDashboard from './pages/AdminDashboard';
+import LoginPage from './pages/LoginPage';
+import UserProfile from './pages/UserProfile';
 
 export default function App() {
-  const [theme, setTheme] = useState('dark');
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
-
-  function handleToggleTheme() {
-    setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
-  }
-
   return (
     <BrowserRouter>
-      <CartProvider>
-        <HomePage theme={theme} onToggleTheme={handleToggleTheme} />
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/conta" element={<UserProfile />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Routes>
+        </CartProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

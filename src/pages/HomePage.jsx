@@ -8,7 +8,7 @@ import ProductGrid from '../components/ProductGrid';
 import CartDrawer from '../components/CartDrawer';
 import Footer from '../components/Footer';
 
-export default function HomePage({ theme, onToggleTheme }) {
+export default function HomePage() {
   const [cartOpen, setCartOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,8 +19,6 @@ export default function HomePage({ theme, onToggleTheme }) {
       <Header
         onToggleCart={() => setCartOpen((o) => !o)}
         onSearch={setSearchQuery}
-        theme={theme}
-        onToggleTheme={onToggleTheme}
       />
       <FilterSection
         activeCategory={activeCategory}
