@@ -1,16 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, X, Package, Bike, CheckCircle, Clock, MessageCircle, ClipboardList, ArrowLeft, Check } from 'lucide-react';
-
-const MOCK_ORDERS = [
-  { id: 'SH47821', customer: 'Lucas Ferreira', phone: '(11) 98765-4321', address: 'R. das Flores, 42 - Perdizes', items: ['Kit Iniciante Premium × 1', 'Seda King Size × 2'], total: 73.90, status: 'pending', created: '2026-06-08 09:12', payment: 'pix', paid: true },
-  { id: 'SH47820', customer: 'Ana Souza', phone: '(11) 91234-5678', address: 'Av. Pompeia, 255 - Lapa', items: ['Kit Heavy Grind × 1'], total: 80.90, status: 'preparing', created: '2026-06-08 08:55', payment: 'pix', paid: true },
-  { id: 'SH47819', customer: 'Rafael Costa', phone: '(11) 97654-3210', address: 'R. Crasso, 12 - V. Romana', items: ['Triturador Policarbonato × 1', 'Isqueiro Premium × 2'], total: 64.80, status: 'out', created: '2026-06-08 08:30', payment: 'pix', paid: true },
-  { id: 'SH47818', customer: 'Marina Lima', phone: '(11) 95555-0001', address: 'R. Cardoso de Almeida, 88 - Perdizes', items: ['Kit Degustação Double Glass × 2'], total: 89.80, status: 'delivered', created: '2026-06-07 17:45', payment: 'pix', paid: true },
-  { id: 'SH47817', customer: 'Pedro Alves', phone: '(11) 94444-7777', address: 'R. Turiassu, 310 - V. Pompeia', items: ['Seda de Vidro Borossilicato × 3', 'Cuia de Silicone × 1'], total: 76.00, status: 'delivered', created: '2026-06-07 16:20', payment: 'pix', paid: true },
-  { id: 'SH47816', customer: 'Camila Rocha', phone: '(11) 93333-2222', address: 'Av. Sumaré, 120 - V. Madalena', items: ['Kit Iniciante Premium × 1'], total: 75.80, status: 'cancelled', created: '2026-06-07 14:10', payment: 'pix', paid: false },
-  { id: 'SH47815', customer: 'Bruno Melo', phone: '(11) 92222-9999', address: 'R. Pio XI, 47 - Alto da Lapa', items: ['Isqueiro Recarregável × 4'], total: 65.50, status: 'pending', created: '2026-06-08 10:05', payment: 'pix', paid: false },
-];
+import { Search, X, Package, Bike, CheckCircle, Clock, MessageCircle, ClipboardList, ArrowLeft, Check, ShoppingBag, Plus, Edit3, Trash2, Save, Loader } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import * as client from '../api/client';
 
 const STATUS_ICONS = {
   pending: Clock,
@@ -28,62 +21,165 @@ const STATUS_CONFIG = {
   cancelled: { label: 'Cancelado',   color: '#ef4444', bg: 'rgba(239,68,68,.15)' },
 };
 
-function fmt(n) {
-  return `R$ ${n.toFixed(2).replace('.', ',')}`;
-}
+function fmt(n) { return `R$ ${n.toFixed(2).replace('.', ',')}`; }
 
 export default function AdminDashboard() {
-  const [orders, setOrders] = useState(MOCK_ORDERS);
+  const { currentUser } = useAuth();
+  const { showToast } = useToast();
+  const [tab, setTab] = useState('orders');
+
+  // ── Orders ──
+  const [orders, setOrders] = useState([]);
+  const [metrics, setMetrics] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
-  const NEXT_STATUS = {
-    pending: 'preparing',
-    preparing: 'out',
-    out: 'delivered',
-  };
+  const NEXT_STATUS = { pending: 'preparing', preparing: 'out', out: 'delivered' };
 
-  function advanceStatus(id) {
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === id && NEXT_STATUS[o.status]
-          ? { ...o, status: NEXT_STATUS[o.status] }
-          : o
-      )
-    );
-    if (selectedOrder?.id === id) {
-      setSelectedOrder((prev) => ({
-        ...prev,
-        status: NEXT_STATUS[prev.status] || prev.status,
-      }));
+  useEffect(() => {
+    if (tab === 'orders') {
+      setOrdersLoading(true);
+      Promise.all([
+        client.fetchAdminOrders(),
+        client.fetchAdminMetrics().catch(() => null)
+      ])
+        .then(([ordersData, metricsData]) => {
+          setOrders(ordersData);
+          setMetrics(metricsData);
+        })
+        .catch(() => showToast('Erro ao carregar pedidos', 'error'))
+        .finally(() => setOrdersLoading(false));
+    }
+  }, [tab]);
+
+  async function advanceStatus(id) {
+    const statusKeys = ['pending', 'preparing', 'out', 'delivered'];
+    const order = orders.find((o) => o.id === id);
+    if (!order) return;
+    const currentIdx = statusKeys.indexOf(order.status);
+    if (currentIdx < 0 || currentIdx >= 3) return;
+    const nextStatus = NEXT_STATUS[order.status];
+    try {
+      await client.updateOrderStatus(id, nextStatus);
+      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: nextStatus } : o));
+      setSelectedOrder((prev) => prev?.id === id ? { ...prev, status: nextStatus } : prev);
+      showToast('Status atualizado!', 'success');
+    } catch {
+      showToast('Erro ao atualizar status', 'error');
     }
   }
 
-  function cancelOrder(id) {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: 'cancelled' } : o))
-    );
-    setSelectedOrder(null);
+  async function cancelOrder(id) {
+    if (!confirm('Tem certeza que deseja cancelar este pedido?')) return;
+    try {
+      await client.cancelOrderByAdmin(id);
+      setOrders((prev) => prev.filter((o) => o.id !== id));
+      setSelectedOrder(null);
+      showToast('Pedido cancelado', 'info');
+    } catch {
+      showToast('Erro ao cancelar pedido', 'error');
+    }
   }
 
-  const filtered = orders.filter((o) => {
-    const matchStatus = filterStatus === 'all' || o.status === filterStatus;
+  const filteredOrders = orders.filter((o) => {
+    const ms = filterStatus === 'all' || o.status.toLowerCase() === filterStatus;
     const q = searchQuery.toLowerCase();
-    const matchSearch = !q || o.id.toLowerCase().includes(q) || o.customer.toLowerCase().includes(q) || o.address.toLowerCase().includes(q);
-    return matchStatus && matchSearch;
+    return ms && (!q || o.id?.toLowerCase().includes(q));
   });
 
-  const counts = {
-    all: orders.length,
-    pending: orders.filter((o) => o.status === 'pending').length,
-    preparing: orders.filter((o) => o.status === 'preparing').length,
-    out: orders.filter((o) => o.status === 'out').length,
-    delivered: orders.filter((o) => o.status === 'delivered').length,
-    cancelled: orders.filter((o) => o.status === 'cancelled').length,
-  };
+  // ── Products ──
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [showNewProduct, setShowNewProduct] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
 
-  const todayRevenue = orders.filter((o) => o.paid && o.status !== 'cancelled').reduce((s, o) => s + o.total, 0);
+  useEffect(() => {
+    if (tab === 'products') {
+      setProductsLoading(true);
+      client.fetchAdminProducts()
+        .then(setProducts)
+        .catch(() => showToast('Erro ao carregar produtos', 'error'))
+        .finally(() => setProductsLoading(false));
+    }
+  }, [tab]);
+
+  const [productForm, setProductForm] = useState({
+    name: '', slug: '', description: '', categoryId: 1,
+    price: '', oldPrice: '', stock: '', badge: '', active: true, imageUrls: ''
+  });
+
+  function resetForm() {
+    setProductForm({ name: '', slug: '', description: '', categoryId: 1, price: '', oldPrice: '', stock: '', badge: '', active: true, imageUrls: '' });
+  }
+
+  function slugify(text) { return text.toLowerCase().replace(/[^\w]+/g, '-').replace(/^-|-$/g, ''); }
+
+  async function handleSaveProduct(e) {
+    e.preventDefault();
+    setSavingProduct(true);
+    try {
+      const body = {
+        categoryId: Number(productForm.categoryId),
+        name: productForm.name,
+        slug: productForm.slug || slugify(productForm.name),
+        description: productForm.description || null,
+        price: Math.round(Number(productForm.price) * 100),
+        oldPrice: productForm.oldPrice ? Math.round(Number(productForm.oldPrice) * 100) : null,
+        stock: Number(productForm.stock),
+        badge: productForm.badge || null,
+        active: productForm.active,
+        imageUrls: productForm.imageUrls ? productForm.imageUrls.split('\n').map((s) => s.trim()).filter(Boolean) : null,
+      };
+
+      if (editingProduct) {
+        await client.updateAdminProduct(editingProduct.id, body);
+        setProducts((prev) => prev.map((p) => p.id === editingProduct.id ? { ...p, ...body, price: body.price, oldPrice: body.oldPrice } : p));
+        showToast('Produto atualizado!', 'success');
+      } else {
+        const result = await client.createAdminProduct(body);
+        setProducts((prev) => [{ ...body, id: result.id, images: body.imageUrls?.map((url, i) => ({ url, isPrimary: i === 0 })) || [], category: 'Atualizar' }, ...prev]);
+        showToast('Produto criado!', 'success');
+      }
+      setEditingProduct(null);
+      setShowNewProduct(false);
+      resetForm();
+    } catch (err) {
+      showToast(err.message || 'Erro ao salvar', 'error');
+    } finally {
+      setSavingProduct(false);
+    }
+  }
+
+  function startEdit(product) {
+    setEditingProduct(product);
+    setShowNewProduct(true);
+    setProductForm({
+      name: product.name,
+      slug: product.slug,
+      description: product.description || '',
+      categoryId: product.categoryId || 1,
+      price: (product.price / 100).toFixed(2),
+      oldPrice: product.oldPrice ? (product.oldPrice / 100).toFixed(2) : '',
+      stock: String(product.stock),
+      badge: product.badge || '',
+      active: product.active,
+      imageUrls: product.images?.map((i) => i.url).join('\n') || '',
+    });
+  }
+
+  async function handleDeleteProduct(id) {
+    if (!confirm('Remover este produto?')) return;
+    try {
+      await client.deleteAdminProduct(id);
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      showToast('Produto removido', 'info');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
 
   function renderStatusIcon(status, size = 14) {
     const Ic = STATUS_ICONS[status];
@@ -95,217 +191,249 @@ export default function AdminDashboard() {
       <header className="admin-header">
         <div className="admin-hdr-inner">
           <div className="admin-brand">
-            <span className="admin-logo">Sweet Headshop</span>
+            <span className="admin-logo">Capivara Smoke</span>
             <span className="admin-role">Painel Admin</span>
           </div>
           <div className="admin-hdr-r">
-            <Link to="/" className="admin-back-btn">
-              <ArrowLeft size={14} aria-hidden="true" /> Ver loja
-            </Link>
+            <nav className="admin-tabs">
+              <button className={`atab${tab === 'orders' ? ' active' : ''}`} onClick={() => setTab('orders')}>
+                <ClipboardList size={16} aria-hidden="true" /> Pedidos
+              </button>
+              <button className={`atab${tab === 'products' ? ' active' : ''}`} onClick={() => setTab('products')}>
+                <ShoppingBag size={16} aria-hidden="true" /> Produtos
+              </button>
+            </nav>
+            <Link to="/" className="admin-back-btn"><ArrowLeft size={14} aria-hidden="true" /> Loja</Link>
           </div>
         </div>
       </header>
 
       <div className="admin-body">
-        <div className="admin-metrics">
-          <div className="metric-card">
-            <span className="metric-label">Pedidos hoje</span>
-            <span className="metric-value">{orders.filter(o => o.created.startsWith('2026-06-08')).length}</span>
-          </div>
-          <div className="metric-card">
-            <span className="metric-label">Receita confirmada</span>
-            <span className="metric-value metric-gold">{fmt(todayRevenue)}</span>
-          </div>
-          <div className="metric-card">
-            <span className="metric-label">Em rota agora</span>
-            <span className="metric-value metric-purple">{counts.out}</span>
-          </div>
-          <div className="metric-card">
-            <span className="metric-label">Aguardando preparo</span>
-            <span className="metric-value metric-amber">{counts.pending}</span>
-          </div>
-        </div>
-
-        <div className="admin-main">
-          <div className="orders-panel">
-            <div className="orders-panel-top">
-              <div className="orders-search-box">
-                <Search size={16} aria-hidden="true" />
-                <input
-                  type="text"
-                  placeholder="Buscar pedido, cliente…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+        {tab === 'orders' && (
+          <>
+            <div className="admin-metrics">
+              <div className="metric-card">
+                <span className="metric-label">Pedidos hoje</span>
+                <span className="metric-value">{metrics?.todayOrders ?? orders.length}</span>
               </div>
-              <div className="status-filters">
-                {['all', 'pending', 'preparing', 'out', 'delivered', 'cancelled'].map((s) => {
-                  const sc = STATUS_CONFIG[s];
-                  return (
-                    <button
-                      key={s}
-                      className={`sf-btn${filterStatus === s ? ' active' : ''}`}
-                      onClick={() => setFilterStatus(s)}
-                    >
-                      {s !== 'all' && renderStatusIcon(s, 13)}
-                      {s === 'all' ? 'Todos' : sc.label}
-                      <span className="sf-count">{counts[s]}</span>
-                    </button>
-                  );
-                })}
+              <div className="metric-card">
+                <span className="metric-label">Receita hoje</span>
+                <span className="metric-value metric-gold">{metrics ? fmt(metrics.todayRevenue / 100) : '—'}</span>
+              </div>
+              <div className="metric-card">
+                <span className="metric-label">Pendentes</span>
+                <span className="metric-value metric-amber">{metrics?.pending ?? 0}</span>
+              </div>
+              <div className="metric-card">
+                <span className="metric-label">Preparando</span>
+                <span className="metric-value metric-purple">{metrics?.preparing ?? 0}</span>
               </div>
             </div>
 
-            <div className="orders-list">
-              {filtered.length === 0 ? (
-                <div className="orders-empty">
-                  <Package size={40} aria-hidden="true" />
-                  <p>Nenhum pedido encontrado</p>
-                </div>
-              ) : (
-                filtered.map((order) => {
-                  const sc = STATUS_CONFIG[order.status];
-                  return (
-                    <div
-                      key={order.id}
-                      className={`order-row${selectedOrder?.id === order.id ? ' selected' : ''}`}
-                      onClick={() => setSelectedOrder(order)}
-                    >
-                      <div className="or-top">
-                        <span className="or-id">#{order.id}</span>
-                        <span
-                          className="or-status"
-                          style={{ color: sc.color, background: sc.bg }}
-                        >
-                          {renderStatusIcon(order.status, 13)} {sc.label}
-                        </span>
-                      </div>
-                      <div className="or-customer">{order.customer}</div>
-                      <div className="or-address">{order.address}</div>
-                      <div className="or-bottom">
-                        <span className="or-time">{order.created.split(' ')[1]}</span>
-                        <span className="or-total">{fmt(order.total)}</span>
-                        {order.paid ? (
-                          <span className="or-paid"><Check size={12} aria-hidden="true" /> PIX</span>
-                        ) : (
-                          <span className="or-unpaid">Aguard. PIX</span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="order-detail">
-            {selectedOrder ? (
-              <>
-                <div className="od-header">
-                  <div>
-                    <h3>Pedido #{selectedOrder.id}</h3>
-                    <span className="od-time">{selectedOrder.created}</span>
+            <div className="admin-main">
+              <div className="orders-panel">
+                <div className="orders-panel-top">
+                  <div className="orders-search-box">
+                    <Search size={16} aria-hidden="true" />
+                    <input type="text" placeholder="Buscar pedido…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                   </div>
-                  <button className="od-close" onClick={() => setSelectedOrder(null)}>
-                    <X size={18} />
-                  </button>
-                </div>
-
-                <div className="od-body">
-                  <div className="od-status-track">
-                    {['pending', 'preparing', 'out', 'delivered'].map((s) => {
-                      const sc2 = STATUS_CONFIG[s];
-                      const steps = ['pending', 'preparing', 'out', 'delivered'];
-                      const currentIdx = steps.indexOf(selectedOrder.status);
-                      const isActive = steps.indexOf(s) <= currentIdx;
-                      const isCancelled = selectedOrder.status === 'cancelled';
+                  <div className="status-filters">
+                    {['all', 'pending', 'preparing', 'out', 'delivered', 'cancelled'].map((s) => {
+                      const sc = STATUS_CONFIG[s];
                       return (
-                        <div key={s} className={`track-step${isActive && !isCancelled ? ' done' : ''}${selectedOrder.status === s ? ' current' : ''}`}>
-                          <div className="track-dot">
-                            {isActive && !isCancelled ? <Check size={14} /> : renderStatusIcon(s, 14)}
-                          </div>
-                          <span>{sc2.label}</span>
-                        </div>
+                        <button key={s} className={`sf-btn${filterStatus === s ? ' active' : ''}`} onClick={() => setFilterStatus(s)}>
+                          {s !== 'all' && renderStatusIcon(s, 13)}
+                          {s === 'all' ? 'Todos' : sc?.label || s}
+                          <span className="sf-count">{orders.filter((o) => s === 'all' || o.status.toLowerCase() === s).length}</span>
+                        </button>
                       );
                     })}
                   </div>
+                </div>
 
-                  {selectedOrder.status === 'cancelled' && (
-                    <div className="od-cancelled-badge">
-                      <X size={14} aria-hidden="true" /> Pedido Cancelado
-                    </div>
-                  )}
-
-                  <div className="od-section">
-                    <h4>Cliente</h4>
-                    <div className="od-info-grid">
-                      <div className="od-info-item">
-                        <span className="od-info-label">Nome</span>
-                        <span>{selectedOrder.customer}</span>
-                      </div>
-                      <div className="od-info-item">
-                        <span className="od-info-label">WhatsApp</span>
-                        <a
-                          href={`https://wa.me/55${selectedOrder.phone.replace(/\D/g,'')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="od-wpp-link"
-                        >
-                          <MessageCircle size={14} aria-hidden="true" /> {selectedOrder.phone}
-                        </a>
-                      </div>
-                      <div className="od-info-item" style={{ gridColumn: '1/-1' }}>
-                        <span className="od-info-label">Endereço</span>
-                        <span>{selectedOrder.address}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="od-section">
-                    <h4>Itens do Pedido</h4>
-                    {selectedOrder.items.map((item, i) => (
-                      <div key={i} className="od-item">{item}</div>
-                    ))}
-                    <div className="od-item-total">
-                      Total: <strong>{fmt(selectedOrder.total)}</strong>
-                      {selectedOrder.paid && <span className="od-paid-tag"><Check size={12} aria-hidden="true" /> PIX confirmado</span>}
-                    </div>
-                  </div>
-
-                  {selectedOrder.status !== 'delivered' && selectedOrder.status !== 'cancelled' && (
-                    <div className="od-actions">
-                      <button
-                        className="btn-advance"
-                        onClick={() => advanceStatus(selectedOrder.id)}
-                      >
-                        {selectedOrder.status === 'pending' && <><Package size={16} aria-hidden="true" /> Iniciar Preparo</>}
-                        {selectedOrder.status === 'preparing' && <><Bike size={16} aria-hidden="true" /> Saiu para Entrega</>}
-                        {selectedOrder.status === 'out' && <><CheckCircle size={16} aria-hidden="true" /> Confirmar Entrega</>}
-                      </button>
-                      <button
-                        className="btn-cancel-order"
-                        onClick={() => cancelOrder(selectedOrder.id)}
-                      >
-                        Cancelar Pedido
-                      </button>
-                    </div>
-                  )}
-
-                  {selectedOrder.status === 'delivered' && (
-                    <div className="od-done-msg">
-                      <CheckCircle size={18} aria-hidden="true" /> Entrega concluída com sucesso!
-                    </div>
+                <div className="orders-list">
+                  {ordersLoading ? (
+                    <div className="orders-empty"><Loader size={32} className="spin" /></div>
+                  ) : filteredOrders.length === 0 ? (
+                    <div className="orders-empty"><Package size={40} aria-hidden="true" /><p>Nenhum pedido encontrado</p></div>
+                  ) : (
+                    filteredOrders.map((order) => {
+                      const sc = STATUS_CONFIG[order.status.toLowerCase()] || STATUS_CONFIG.pending;
+                      return (
+                        <div key={order.id} className={`order-row${selectedOrder?.id === order.id ? ' selected' : ''}`} onClick={() => setSelectedOrder(order)}>
+                          <div className="or-top">
+                            <span className="or-id">#{order.id?.slice(0, 8).toUpperCase()}</span>
+                            <span className="or-status" style={{ color: sc.color, background: sc.bg }}>
+                              {renderStatusIcon(order.status.toLowerCase(), 13)} {sc.label}
+                            </span>
+                          </div>
+                          <div className="or-bottom">
+                            <span className="or-time">{new Date(order.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="or-total">R$ {(order.total / 100).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
-              </>
-            ) : (
-              <div className="od-empty">
-                <ClipboardList size={40} aria-hidden="true" />
-                <p>Selecione um pedido para ver os detalhes</p>
               </div>
+
+              <div className="order-detail">
+                {selectedOrder ? (
+                  <>
+                    <div className="od-header">
+                      <div><h3>Pedido #{selectedOrder.id?.slice(0, 8).toUpperCase()}</h3><span className="od-time">{new Date(selectedOrder.createdAt).toLocaleString('pt-BR')}</span></div>
+                      <button className="od-close" onClick={() => setSelectedOrder(null)}><X size={18} /></button>
+                    </div>
+                    <div className="od-body">
+                      <div className="od-status-track">
+                        {['pending', 'preparing', 'out', 'delivered'].map((s) => {
+                          const sc2 = STATUS_CONFIG[s];
+                          const steps = ['pending', 'preparing', 'out', 'delivered'];
+                          const currentIdx = steps.indexOf(selectedOrder.status.toLowerCase());
+                          const isActive = steps.indexOf(s) <= currentIdx;
+                          return (
+                            <div key={s} className={`track-step${isActive && selectedOrder.status !== 'Cancelled' ? ' done' : ''}${selectedOrder.status.toLowerCase() === s ? ' current' : ''}`}>
+                              <div className="track-dot">{isActive && selectedOrder.status !== 'Cancelled' ? <Check size={14} /> : renderStatusIcon(s, 14)}</div>
+                              <span>{sc2.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="od-section">
+                        <h4>Itens</h4>
+                        {selectedOrder.items?.map((item, i) => (
+                          <div key={i} className="od-item">{item.productName} × {item.quantity} — R$ {(item.subtotal / 100).toFixed(2)}</div>
+                        ))}
+                        <div className="od-item-total">
+                          Total: <strong>R$ {(selectedOrder.total / 100).toFixed(2)}</strong>
+                          {selectedOrder.paidAt && <span className="od-paid-tag"><Check size={12} /> PIX</span>}
+                        </div>
+                      </div>
+                      {selectedOrder.status !== 'Delivered' && selectedOrder.status !== 'Cancelled' && (
+                        <div className="od-actions">
+                          <button className="btn-advance" onClick={() => advanceStatus(selectedOrder.id)}>
+                            <Package size={16} /> Avançar Status
+                          </button>
+                          <button className="btn-cancel-order" onClick={() => cancelOrder(selectedOrder.id)}>Cancelar</button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="od-empty"><ClipboardList size={40} /><p>Selecione um pedido</p></div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {tab === 'products' && (
+          <>
+            <div className="admin-prod-top">
+              <h2>Produtos ({products.length})</h2>
+              <button className="admin-add-btn" onClick={() => { setShowNewProduct(true); setEditingProduct(null); resetForm(); }}>
+                <Plus size={16} aria-hidden="true" /> Novo Produto
+              </button>
+            </div>
+
+            {showNewProduct && (
+              <form className="admin-prod-form" onSubmit={handleSaveProduct}>
+                <div className="apf-header">
+                  <h3>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</h3>
+                  <button type="button" className="apf-close" onClick={() => { setShowNewProduct(false); setEditingProduct(null); }}><X size={18} /></button>
+                </div>
+                <div className="apf-body">
+                  <div className="apf-row">
+                    <div className="apf-group" style={{ flex: 2 }}>
+                      <label>Nome</label>
+                      <input value={productForm.name} onChange={(e) => setProductForm((f) => ({ ...f, name: e.target.value }))} required />
+                    </div>
+                    <div className="apf-group" style={{ flex: 1 }}>
+                      <label>Slug</label>
+                      <input value={productForm.slug} onChange={(e) => setProductForm((f) => ({ ...f, slug: e.target.value }))} placeholder="gerado-auto" />
+                    </div>
+                  </div>
+                  <div className="apf-group">
+                    <label>Descrição</label>
+                    <textarea value={productForm.description} onChange={(e) => setProductForm((f) => ({ ...f, description: e.target.value }))} rows={3} />
+                  </div>
+                  <div className="apf-row">
+                    <div className="apf-group">
+                      <label>Categoria ID</label>
+                      <input type="number" value={productForm.categoryId} onChange={(e) => setProductForm((f) => ({ ...f, categoryId: e.target.value }))} />
+                    </div>
+                    <div className="apf-group">
+                      <label>Preço (R$)</label>
+                      <input type="number" step="0.01" value={productForm.price} onChange={(e) => setProductForm((f) => ({ ...f, price: e.target.value }))} required />
+                    </div>
+                    <div className="apf-group">
+                      <label>Preço antigo (R$)</label>
+                      <input type="number" step="0.01" value={productForm.oldPrice} onChange={(e) => setProductForm((f) => ({ ...f, oldPrice: e.target.value }))} />
+                    </div>
+                    <div className="apf-group">
+                      <label>Estoque</label>
+                      <input type="number" value={productForm.stock} onChange={(e) => setProductForm((f) => ({ ...f, stock: e.target.value }))} required />
+                    </div>
+                  </div>
+                  <div className="apf-row">
+                    <div className="apf-group">
+                      <label>Badge</label>
+                      <input value={productForm.badge} onChange={(e) => setProductForm((f) => ({ ...f, badge: e.target.value }))} placeholder="sale / new" />
+                    </div>
+                    <div className="apf-group" style={{ justifyContent: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 22 }}>
+                      <input type="checkbox" checked={productForm.active} onChange={(e) => setProductForm((f) => ({ ...f, active: e.target.checked }))} id="prod-active" />
+                      <label htmlFor="prod-active" style={{ fontSize: 13, cursor: 'pointer' }}>Ativo</label>
+                    </div>
+                  </div>
+                  <div className="apf-group">
+                    <label>URLs das imagens (uma por linha)</label>
+                    <textarea value={productForm.imageUrls} onChange={(e) => setProductForm((f) => ({ ...f, imageUrls: e.target.value }))} rows={3} placeholder="https://picsum.photos/seed/meu-produto/400/400" />
+                  </div>
+                </div>
+                <div className="apf-footer">
+                  <button type="submit" className="admin-save-btn" disabled={savingProduct}>
+                    {savingProduct ? <Loader size={16} className="spin" /> : <Save size={16} aria-hidden="true" />}
+                    {editingProduct ? ' Salvar alterações' : ' Criar produto'}
+                  </button>
+                </div>
+              </form>
             )}
-          </div>
-        </div>
+
+            <div className="admin-prod-grid">
+              {productsLoading ? (
+                <div className="admin-prod-empty"><Loader size={32} className="spin" /><p>Carregando...</p></div>
+              ) : products.length === 0 ? (
+                <div className="admin-prod-empty"><ShoppingBag size={40} aria-hidden="true" /><p>Nenhum produto cadastrado</p></div>
+              ) : (
+                products.map((p) => (
+                  <div key={p.id} className="admin-prod-card">
+                    <div className="apc-img">
+                      <img
+                        src={p.images?.[0]?.url || 'https://via.placeholder.com/200'}
+                        alt={p.name}
+                        loading="lazy"
+                        onError={(e) => { e.target.src = 'https://via.placeholder.com/200?text=Sem+Foto'; }}
+                      />
+                      {p.badge && <span className="apc-badge">{p.badge === 'sale' ? 'Promo' : p.badge === 'new' ? 'Novo' : p.badge}</span>}
+                    </div>
+                    <div className="apc-info">
+                      <span className="apc-name">{p.name}</span>
+                      <span className="apc-cat">{p.category}</span>
+                      <span className="apc-price">R$ {(p.price / 100).toFixed(2)}</span>
+                      {p.oldPrice && <span className="apc-old">R$ {(p.oldPrice / 100).toFixed(2)}</span>}
+                      <span className={`apc-stock${p.stock <= 5 ? ' low' : ''}`}>{p.stock} em estoque</span>
+                    </div>
+                    <div className="apc-actions">
+                      <button className="apc-edit" onClick={() => startEdit(p)}><Edit3 size={15} /></button>
+                      <button className="apc-del" onClick={() => handleDeleteProduct(p.id)}><Trash2 size={15} /></button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

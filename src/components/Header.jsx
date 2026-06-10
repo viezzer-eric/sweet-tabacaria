@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Home, Search, Gift, User, LogOut, KeyRound, FileText, MessageCircle, ShoppingCart, Wrench } from 'lucide-react';
+import { Menu, X, Home, Search, Gift, User, LogOut, KeyRound, FileText, MessageCircle, ShoppingCart, Wrench, Store } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -29,7 +29,7 @@ export default function Header({ onToggleCart, onSearch, onSearchSubmit, onShowP
       <header>
         <div className="hdr">
           <Link to="/" className="logo">
-            <span className="logo-name">Sweet Headshop</span>
+            <span className="logo-name">Capivara Smoke</span>
             <span className="logo-tag">Delivery · Lapa · SP</span>
           </Link>
 
@@ -62,10 +62,16 @@ export default function Header({ onToggleCart, onSearch, onSearchSubmit, onShowP
                 {currentUser.name.split(' ')[0]}
               </Link>
             ) : (
-              <Link to="/login" className="hdr-link">
-                <KeyRound size={16} aria-hidden="true" />
-                Entrar
-              </Link>
+              <>
+                <Link to="/admin/cadastro" className="hdr-sell-link">
+                  <Store size={16} aria-hidden="true" />
+                  Criar minha loja
+                </Link>
+                <Link to="/login" className="hdr-link">
+                  <KeyRound size={16} aria-hidden="true" />
+                  Entrar
+                </Link>
+              </>
             )}
 
             <button className="icon-btn hamburger" onClick={() => setSidebarOpen(true)} aria-label="Abrir menu">
@@ -112,10 +118,10 @@ export default function Header({ onToggleCart, onSearch, onSearchSubmit, onShowP
                 <User size={18} className="sli" aria-hidden="true" />
                 Minha Conta
               </Link>
-              {currentUser.role === 'admin' && (
+              {currentUser.role === 'fornecedor' && (
                 <Link to="/admin" className="sidebar-link" onClick={closeSidebar}>
                   <Wrench size={18} className="sli" aria-hidden="true" />
-                  Painel Admin
+                  Painel Fornecedor
                 </Link>
               )}
               <button className="sidebar-link" onClick={handleLogout}>
@@ -132,6 +138,10 @@ export default function Header({ onToggleCart, onSearch, onSearchSubmit, onShowP
               <Link to="/login" className="sidebar-link" onClick={closeSidebar}>
                 <FileText size={18} className="sli" aria-hidden="true" />
                 Criar Conta
+              </Link>
+              <Link to="/admin/cadastro" className="sidebar-link" onClick={closeSidebar}>
+                <Store size={18} className="sli" aria-hidden="true" />
+                Quero Vender
               </Link>
             </>
           )}

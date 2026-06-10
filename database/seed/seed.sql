@@ -1,0 +1,11 @@
+-- ══════════════════════════════════════════════════════════════
+--  CAPIVARA SMOKE — Seed de Dados
+--  ⚠️  Rode APENAS depois da migration 001
+--  Para resetar: DELETE FROM order_items; DELETE FROM orders;
+--                DELETE FROM addresses; DELETE FROM product_images;
+--                DELETE FROM products; DELETE FROM categories;
+--                DELETE FROM suppliers;
+-- ══════════════════════════════════════════════════════════════
+
+-- Já incluso na migration 001.
+-- Este arquivo é para referência / recarga manual se necessário.

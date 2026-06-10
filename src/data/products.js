@@ -27,30 +27,6 @@ export const KITS_DATA = [
   },
 ];
 
-export const PRODUCTS_DATA = [
-  { id: 1, name: 'Seda King Size Extra Fina', category: 'Sedas', price: 12.00, oldPrice: 15.00, icon: 'file-text', badge: 'sale' },
-  { id: 2, name: 'Triturador de Policarbonato', category: 'Trituradores', price: 35.00, icon: 'settings', badge: 'new' },
-  { id: 3, name: 'Isqueiro Recarregável Premium', category: 'Isqueiros', price: 9.90, icon: 'flame' },
-  { id: 4, name: 'Cuia de Silicone Eco', category: 'Acessórios', price: 22.00, icon: 'bowl' },
-  { id: 5, name: 'Seda de Vidro Borossilicato', category: 'Sedas', price: 18.00, icon: 'flask' },
-];
-
-export const CATEGORY_NAMES = {
-  all: 'Ver Tudo',
-  Sedas: 'Sedas',
-  Trituradores: 'Trituradores',
-  Isqueiros: 'Isqueiros',
-  Acessórios: 'Acessórios',
-};
-
-export const PROD_CAT_ICONS = {
-  all: Flame,
-  Sedas: FileText,
-  Trituradores: Settings,
-  Isqueiros: Flame,
-  Acessórios: Soup,
-};
-
 export const PRODUCT_ICONS = {
   gift: Gift,
   flask: FlaskConical,
@@ -62,3 +38,18 @@ export const PRODUCT_ICONS = {
   truck: Truck,
   pill: Pill,
 };
+
+export function formatApiProduct(p) {
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    category: p.category || '',
+    price: p.price / 100,
+    oldPrice: p.oldPrice ? p.oldPrice / 100 : null,
+    stock: p.stock,
+    badge: p.badge,
+    image: p.images?.[0]?.url || null,
+    description: p.description,
+  };
+}

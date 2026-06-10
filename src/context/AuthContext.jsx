@@ -1,56 +1,59 @@
-import { createContext, useContext, useState } from 'react';
-
-const MOCK_USERS = [
-  { id: 1, name: 'Admin Sweet', email: 'admin@sweaheadshop.com', password: 'admin123', phone: '(11) 99999-9999', role: 'admin', address: {} },
-  { id: 2, name: 'Lucas Ferreira', email: 'lucas@email.com', password: '123456', phone: '(11) 98765-4321', role: 'client', address: { street: 'R. das Flores', number: '42', complement: '', neighborhood: 'Perdizes', cep: '05000-000' } },
-];
+import { createContext, useContext, useState, useEffect } from 'react';
+import * as client from '../api/client';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('sweet_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  function login(email, password) {
-    const user = MOCK_USERS.find((u) => u.email === email && u.password === password);
-    if (user) {
-      setCurrentUser(user);
-      localStorage.setItem('sweet_user', JSON.stringify(user));
-      setError('');
-      return { success: true, role: user.role };
+  useEffect(() => {
+    const token = localStorage.getItem('capivara_token');
+    if (!token) {
+      setLoading(false);
+      return;
     }
-    return { success: false };
+    client.getMe()
+      .then((u) => setCurrentUser(u))
+      .catch(() => client.logout())
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function login(email, password) {
+    try {
+      const data = await client.login(email, password);
+      setCurrentUser(data.user);
+      setError('');
+      return { success: true, role: data.user.role };
+    } catch (err) {
+      setError(err.message);
+      return { success: false };
+    }
   }
 
-  function register(data) {
-    const exists = MOCK_USERS.some((u) => u.email === data.email);
-    if (exists) {
-      return { success: false, error: 'Este e-mail já está cadastrado.' };
+  async function register(data) {
+    try {
+      const res = await client.register(data.name, data.email, data.password, data.phone, data.cpf);
+      setCurrentUser(res.user);
+      setError('');
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
-    const newUser = { id: Date.now(), ...data, role: 'client', address: {} };
-    MOCK_USERS.push(newUser);
-    setCurrentUser(newUser);
-    localStorage.setItem('sweet_user', JSON.stringify(newUser));
-    setError('');
-    return { success: true };
   }
 
   function updateProfile(data) {
-    const updated = { ...currentUser, ...data };
-    setCurrentUser(updated);
-    localStorage.setItem('sweet_user', JSON.stringify(updated));
+    setCurrentUser((prev) => prev ? { ...prev, ...data } : prev);
   }
 
   function logout() {
+    client.logout();
     setCurrentUser(null);
-    localStorage.removeItem('sweet_user');
   }
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, register, updateProfile, logout, error, setError }}>
+    <AuthContext.Provider value={{ currentUser, login, register, updateProfile, logout, error, setError, loading }}>
       {children}
     </AuthContext.Provider>
   );

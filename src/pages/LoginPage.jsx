@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Loader } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -12,9 +12,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [cpf, setCpf] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [localError, setLocalError] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   function switchMode(m) {
     setMode(m);
@@ -24,22 +26,24 @@ export default function LoginPage() {
     setPassword('');
     setName('');
     setPhone('');
+    setCpf('');
     setConfirmPassword('');
   }
 
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault();
     setLocalError('');
-    const result = login(email, password);
+    setSubmitting(true);
+    const result = await login(email, password);
+    setSubmitting(false);
     if (result.success) {
-      if (result.role === 'admin') navigate('/admin');
-      else navigate('/conta');
+      navigate('/conta');
     } else {
       setLocalError('E-mail ou senha incorretos.');
     }
   }
 
-  function handleRegister(e) {
+  async function handleRegister(e) {
     e.preventDefault();
     setLocalError('');
     if (password !== confirmPassword) {
@@ -50,11 +54,18 @@ export default function LoginPage() {
       setLocalError('A senha deve ter pelo menos 6 caracteres.');
       return;
     }
-    const result = register({ name, email, password, phone });
+    const cleanCpf = cpf.replace(/\D/g, '');
+    if (cleanCpf.length !== 11) {
+      setLocalError('CPF inválido. Digite os 11 dígitos.');
+      return;
+    }
+    setSubmitting(true);
+    const result = await register({ name, email, password, phone, cpf: cleanCpf });
+    setSubmitting(false);
     if (result.success) {
       navigate('/conta');
     } else {
-      setLocalError(result.error);
+      setLocalError(result.error || 'Erro ao criar conta.');
     }
   }
 
@@ -69,7 +80,7 @@ export default function LoginPage() {
       </div>
 
       <Link to="/" className="login-brand">
-        <span className="login-brand-name">Sweet Headshop</span>
+        <span className="login-brand-name">Capivara Smoke</span>
         <span className="login-brand-tag">Delivery · Lapa · SP</span>
       </Link>
 
@@ -128,12 +139,11 @@ export default function LoginPage() {
 
             {displayError && <p className="login-error">{displayError}</p>}
 
-            <button type="submit" className="login-submit">
-              Entrar na conta
+            <button type="submit" className="login-submit" disabled={submitting}>
+              {submitting ? <span className="processing"><Loader size={18} className="spin" aria-hidden="true" /> Entrando...</span> : 'Entrar na conta'}
             </button>
 
             <div className="login-hint">
-              <p>Teste: <code>admin@sweaheadshop.com</code> / <code>admin123</code></p>
               <p>Usuário: <code>lucas@email.com</code> / <code>123456</code></p>
             </div>
           </form>
@@ -172,6 +182,25 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="lf-group">
+              <label>CPF</label>
+              <input
+                type="text"
+                value={cpf}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  let formatted = raw;
+                  if (raw.length > 3) formatted = raw.slice(0, 3) + '.' + raw.slice(3);
+                  if (raw.length > 6) formatted = formatted.slice(0, 7) + '.' + formatted.slice(7);
+                  if (raw.length > 9) formatted = formatted.slice(0, 11) + '-' + formatted.slice(11);
+                  setCpf(formatted);
+                }}
+                placeholder="000.000.000-00"
+                required
+                inputMode="numeric"
+              />
+            </div>
+
             <div className="lf-row">
               <div className="lf-group">
                 <label>Senha</label>
@@ -206,8 +235,8 @@ export default function LoginPage() {
 
             {displayError && <p className="login-error">{displayError}</p>}
 
-            <button type="submit" className="login-submit">
-              Criar minha conta
+            <button type="submit" className="login-submit" disabled={submitting}>
+              {submitting ? <span className="processing"><Loader size={18} className="spin" aria-hidden="true" /> Criando...</span> : 'Criar minha conta'}
             </button>
           </form>
         )}

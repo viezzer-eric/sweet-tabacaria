@@ -1,21 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, MapPin, Lock, Package, ShieldAlert, ShoppingBag, Wrench, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { User, MapPin, Lock, Package, Store, ShoppingBag, Wrench, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const MOCK_ORDER_HISTORY = [
-  { id: 'SH47810', date: '2026-05-30', items: ['Kit Iniciante Premium × 1', 'Seda King Size × 2'], total: 73.90, status: 'delivered' },
-  { id: 'SH47795', date: '2026-05-18', items: ['Kit Heavy Grind × 1'], total: 80.90, status: 'delivered' },
-  { id: 'SH47771', date: '2026-04-22', items: ['Triturador Policarbonato × 1'], total: 60.90, status: 'delivered' },
-  { id: 'SH47749', date: '2026-03-14', items: ['Kit Degustação Double Glass × 1', 'Isqueiro × 1'], total: 71.90, status: 'delivered' },
-];
+import * as client from '../api/client';
 
 const STATUS_LABEL = {
-  delivered: { label: 'Entregue', color: '#22c55e', bg: 'rgba(34,197,94,.12)' },
-  out: { label: 'Em rota', color: '#a68bff', bg: 'rgba(166,139,255,.12)' },
-  preparing: { label: 'Preparando', color: '#63a0e0', bg: 'rgba(99,160,224,.12)' },
-  pending: { label: 'Aguardando', color: '#e8be6a', bg: 'rgba(232,190,106,.12)' },
-  cancelled: { label: 'Cancelado', color: '#ef4444', bg: 'rgba(239,68,68,.12)' },
+  Delivered: { label: 'Entregue', color: '#22c55e', bg: 'rgba(34,197,94,.12)' },
+  Out: { label: 'Em rota', color: '#a68bff', bg: 'rgba(166,139,255,.12)' },
+  Preparing: { label: 'Preparando', color: '#63a0e0', bg: 'rgba(99,160,224,.12)' },
+  Pending: { label: 'Aguardando', color: '#e8be6a', bg: 'rgba(232,190,106,.12)' },
+  Cancelled: { label: 'Cancelado', color: '#ef4444', bg: 'rgba(239,68,68,.12)' },
 };
 
 function fmt(n) {
@@ -25,73 +19,56 @@ function fmt(n) {
 function Avatar({ name, size = 48 }) {
   const initials = name?.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?';
   return (
-    <div
-      className="user-avatar"
-      style={{ width: size, height: size, fontSize: size * 0.36 }}
-    >
+    <div className="user-avatar" style={{ width: size, height: size, fontSize: size * 0.36 }}>
       {initials}
     </div>
   );
 }
 
 export default function UserProfile() {
-  const { currentUser, updateProfile, logout } = useAuth();
+  const { currentUser, logout, loading } = useAuth();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('profile');
   const [saved, setSaved] = useState('');
 
-  const [name, setName] = useState(currentUser?.name || '');
-  const [email, setEmail] = useState(currentUser?.email || '');
-  const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
 
-  const [street, setStreet] = useState(currentUser?.address?.street || '');
-  const [number, setNumber] = useState(currentUser?.address?.number || '');
-  const [complement, setComplement] = useState(currentUser?.address?.complement || '');
-  const [neighborhood, setNeighborhood] = useState(currentUser?.address?.neighborhood || '');
-  const [cep, setCep] = useState(currentUser?.address?.cep || '');
+  const [addresses, setAddresses] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
-  const [currentPass, setCurrentPass] = useState('');
-  const [newPass, setNewPass] = useState('');
-  const [confirmPass, setConfirmPass] = useState('');
-  const [passError, setPassError] = useState('');
-  const [showPass, setShowPass] = useState(false);
+  useEffect(() => {
+    if (currentUser) {
+      setName(currentUser.name || '');
+      setEmail(currentUser.email || '');
+      setPhone(currentUser.phone || '');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser) {
+      client.fetchAddresses().then(setAddresses).catch(() => {});
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser && activeTab === 'orders') {
+      setOrdersLoading(true);
+      client.fetchOrders()
+        .then(setOrders)
+        .catch(() => {})
+        .finally(() => setOrdersLoading(false));
+    }
+  }, [currentUser, activeTab]);
+
+  if (loading) return null;
 
   if (!currentUser) {
     navigate('/login');
     return null;
-  }
-
-  function saveProfile(e) {
-    e.preventDefault();
-    updateProfile({ name, email, phone });
-    showSaved('Perfil atualizado!');
-  }
-
-  function saveAddress(e) {
-    e.preventDefault();
-    updateProfile({ address: { street, number, complement, neighborhood, cep } });
-    showSaved('Endereço salvo!');
-  }
-
-  function savePassword(e) {
-    e.preventDefault();
-    setPassError('');
-    if (currentPass !== currentUser.password) {
-      setPassError('Senha atual incorreta.');
-      return;
-    }
-    if (newPass.length < 6) {
-      setPassError('Nova senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
-    if (newPass !== confirmPass) {
-      setPassError('As senhas não conferem.');
-      return;
-    }
-    updateProfile({ password: newPass });
-    setCurrentPass(''); setNewPass(''); setConfirmPass('');
-    showSaved('Senha alterada com sucesso!');
   }
 
   function showSaved(msg) {
@@ -107,7 +84,6 @@ export default function UserProfile() {
   const tabs = [
     { id: 'profile', icon: User, label: 'Meu Perfil' },
     { id: 'address', icon: MapPin, label: 'Endereço' },
-    { id: 'password', icon: Lock, label: 'Senha' },
     { id: 'orders', icon: Package, label: 'Pedidos' },
   ];
 
@@ -115,7 +91,7 @@ export default function UserProfile() {
     <div className="profile-page">
       <header className="profile-header">
         <Link to="/" className="profile-brand">
-          <ArrowLeft size={16} aria-hidden="true" /> Sweet Headshop
+          <ArrowLeft size={16} aria-hidden="true" /> Capivara Smoke
         </Link>
         <span className="profile-header-title">Minha Conta</span>
         <button className="profile-logout-btn" onClick={handleLogout}>Sair</button>
@@ -129,8 +105,8 @@ export default function UserProfile() {
               <span className="puc-name">{currentUser.name}</span>
               <span className="puc-email">{currentUser.email}</span>
               <span className="puc-badge">
-                {currentUser.role === 'admin' ? (
-                  <><ShieldAlert size={14} aria-hidden="true" /> Admin</>
+                {currentUser.role === 'fornecedor' ? (
+                  <><Store size={14} aria-hidden="true" /> Fornecedor</>
                 ) : (
                   <><ShoppingBag size={14} aria-hidden="true" /> Cliente</>
                 )}
@@ -140,12 +116,12 @@ export default function UserProfile() {
 
           <div className="profile-stats">
             <div className="pstat">
-              <span className="pstat-v">{MOCK_ORDER_HISTORY.length}</span>
+              <span className="pstat-v">{orders.length}</span>
               <span className="pstat-l">Pedidos</span>
             </div>
             <div className="pstat">
               <span className="pstat-v pstat-gold">
-                {fmt(MOCK_ORDER_HISTORY.reduce((s, o) => s + o.total, 0))}
+                {fmt(orders.reduce((s, o) => s + o.total / 100, 0))}
               </span>
               <span className="pstat-l">Gasto total</span>
             </div>
@@ -165,10 +141,10 @@ export default function UserProfile() {
                 </button>
               );
             })}
-            {currentUser.role === 'admin' && (
+            {currentUser.role === 'fornecedor' && (
               <Link to="/admin" className="pnav-btn pnav-admin">
                 <Wrench size={18} className="pnav-icon" aria-hidden="true" />
-                Painel Admin
+                Painel Fornecedor
               </Link>
             )}
           </nav>
@@ -183,7 +159,7 @@ export default function UserProfile() {
                 <h2>Informações Pessoais</h2>
                 <p>Atualize seu nome, e-mail e telefone de contato.</p>
               </div>
-              <form onSubmit={saveProfile} className="profile-form">
+              <div className="profile-form">
                 <div className="pf-group">
                   <label>Nome completo</label>
                   <input value={name} onChange={(e) => setName(e.target.value)} required />
@@ -191,7 +167,7 @@ export default function UserProfile() {
                 <div className="pf-row">
                   <div className="pf-group">
                     <label>E-mail</label>
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <input type="email" value={email} disabled />
                   </div>
                   <div className="pf-group">
                     <label>WhatsApp</label>
@@ -199,98 +175,46 @@ export default function UserProfile() {
                   </div>
                 </div>
                 <div className="pf-footer">
-                  <button type="submit" className="pf-save-btn">Salvar alterações</button>
+                  <button type="button" className="pf-save-btn" onClick={async () => {
+                    try {
+                      await client.updateProfile({ name, phone });
+                      showSaved('Dados salvos com sucesso!');
+                    } catch { showSaved('Erro ao salvar. Tente novamente.'); }
+                  }}>Salvar alterações</button>
                 </div>
-              </form>
+              </div>
             </div>
           )}
 
           {activeTab === 'address' && (
             <div className="profile-section">
               <div className="ps-head">
-                <h2>Endereço de Entrega</h2>
-                <p>Seu endereço padrão para os pedidos de delivery.</p>
+                <h2>Endereços de Entrega</h2>
+                <p>Gerencie seus endereços salvos.</p>
               </div>
-              <form onSubmit={saveAddress} className="profile-form">
-                <div className="pf-row" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                  <div className="pf-group">
-                    <label>Rua / Avenida</label>
-                    <input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Nome da rua" />
-                  </div>
-                  <div className="pf-group">
-                    <label>Número</label>
-                    <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="123" />
-                  </div>
+              {addresses.length === 0 ? (
+                <p style={{ color: '#888', marginTop: 8 }}>Nenhum endereço salvo ainda.</p>
+              ) : (
+                <div className="orders-history">
+                  {addresses.map((addr) => (
+                    <div key={addr.id} className="oh-row">
+                      <div className="oh-left">
+                        <span className="oh-id">{addr.street}, {addr.number}</span>
+                        <span className="oh-date">{addr.neighborhood} — {addr.city}/{addr.state}</span>
+                        {addr.complement && <div className="oh-items"><span>{addr.complement}</span></div>}
+                      </div>
+                      <div className="oh-right">
+                        <span className="oh-total">{addr.cep}</span>
+                        {addr.isDefault && (
+                          <span className="oh-status" style={{ color: '#22c55e', background: 'rgba(34,197,55,.12)' }}>
+                            Padrão
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="pf-row">
-                  <div className="pf-group">
-                    <label>Complemento</label>
-                    <input value={complement} onChange={(e) => setComplement(e.target.value)} placeholder="Apto, bloco..." />
-                  </div>
-                  <div className="pf-group">
-                    <label>Bairro</label>
-                    <input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} placeholder="Seu bairro" />
-                  </div>
-                </div>
-                <div className="pf-group" style={{ maxWidth: 200 }}>
-                  <label>CEP</label>
-                  <input value={cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
-                </div>
-                <div className="delivery-area-note">
-                  <MapPin size={14} aria-hidden="true" /> Entregamos em: Lapa · Perdizes · Vila Romana · Água Branca · V. Madalena
-                </div>
-                <div className="pf-footer">
-                  <button type="submit" className="pf-save-btn">Salvar endereço</button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {activeTab === 'password' && (
-            <div className="profile-section">
-              <div className="ps-head">
-                <h2>Alterar Senha</h2>
-                <p>Escolha uma senha forte com pelo menos 6 caracteres.</p>
-              </div>
-              <form onSubmit={savePassword} className="profile-form" style={{ maxWidth: 420 }}>
-                <div className="pf-group">
-                  <label>Senha atual</label>
-                  <div className="pass-wrap">
-                    <input
-                      type={showPass ? 'text' : 'password'}
-                      value={currentPass}
-                      onChange={(e) => setCurrentPass(e.target.value)}
-                      required
-                    />
-                    <button type="button" className="pass-toggle" onClick={() => setShowPass(v => !v)}>
-                      {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-                <div className="pf-group">
-                  <label>Nova senha</label>
-                  <input
-                    type={showPass ? 'text' : 'password'}
-                    value={newPass}
-                    onChange={(e) => setNewPass(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    required
-                  />
-                </div>
-                <div className="pf-group">
-                  <label>Confirmar nova senha</label>
-                  <input
-                    type={showPass ? 'text' : 'password'}
-                    value={confirmPass}
-                    onChange={(e) => setConfirmPass(e.target.value)}
-                    required
-                  />
-                </div>
-                {passError && <p className="login-error">{passError}</p>}
-                <div className="pf-footer">
-                  <button type="submit" className="pf-save-btn">Alterar senha</button>
-                </div>
-              </form>
+              )}
             </div>
           )}
 
@@ -301,31 +225,34 @@ export default function UserProfile() {
                 <p>Todos os seus pedidos anteriores.</p>
               </div>
               <div className="orders-history">
-                {MOCK_ORDER_HISTORY.map((order) => {
-                  const sc = STATUS_LABEL[order.status];
-                  return (
-                    <div key={order.id} className="oh-row">
-                      <div className="oh-left">
-                        <span className="oh-id">#{order.id}</span>
-                        <span className="oh-date">{order.date}</span>
-                        <div className="oh-items">
-                          {order.items.map((item, i) => (
-                            <span key={i}>{item}</span>
-                          ))}
+                {ordersLoading ? (
+                  <p style={{ color: '#888' }}>Carregando...</p>
+                ) : orders.length === 0 ? (
+                  <p style={{ color: '#888' }}>Nenhum pedido ainda.</p>
+                ) : (
+                  orders.map((order) => {
+                    const sc = STATUS_LABEL[order.status] || { label: order.status, color: '#888', bg: 'rgba(136,136,136,.12)' };
+                    return (
+                      <div key={order.id} className="oh-row">
+                        <div className="oh-left">
+                          <span className="oh-id">#{order.id.slice(0, 8).toUpperCase()}</span>
+                          <span className="oh-date">{new Date(order.createdAt).toLocaleDateString('pt-BR')}</span>
+                          <div className="oh-items">
+                            {order.items?.map((item, i) => (
+                              <span key={i}>{item.productName} × {item.quantity}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="oh-right">
+                          <span className="oh-total">R$ {(order.total / 100).toFixed(2)}</span>
+                          <span className="oh-status" style={{ color: sc.color, background: sc.bg }}>
+                            {sc.label}
+                          </span>
                         </div>
                       </div>
-                      <div className="oh-right">
-                        <span className="oh-total">{fmt(order.total)}</span>
-                        <span
-                          className="oh-status"
-                          style={{ color: sc.color, background: sc.bg }}
-                        >
-                          {sc.label}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           )}

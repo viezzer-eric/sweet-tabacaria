@@ -1,19 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package } from 'lucide-react';
-import { PRODUCTS_DATA } from '../data/products';
+import * as client from '../api/client';
+import { formatApiProduct } from '../data/products';
 import ProductCard from './ProductCard';
 
 export default function ProductGrid({ activeCategory, searchQuery }) {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState('default');
 
-  let filtered = PRODUCTS_DATA.filter((p) => {
-    const matchCat = activeCategory === 'all' || p.category === activeCategory;
-    const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  useEffect(() => {
+    setLoading(true);
+    const filters = { category: activeCategory !== 'all' ? activeCategory : undefined };
+    if (sort !== 'default') filters.sort = sort;
+    client.fetchProducts(filters)
+      .then((data) => setProducts((data?.items || data || []).map(formatApiProduct)))
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
+  }, [activeCategory, sort]);
 
-  if (sort === 'price-asc') filtered = [...filtered].sort((a, b) => a.price - b.price);
-  if (sort === 'price-desc') filtered = [...filtered].sort((a, b) => b.price - a.price);
+  const filtered = searchQuery
+    ? products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : products;
+
+  if (loading) {
+    return (
+      <main>
+        <div className="sec-head"><h2>Nossos Produtos</h2></div>
+        <div className="pgrid" id="prodGrid">
+          {[1,2,3,4].map((i) => (
+            <div key={i} className="pcard pcard-skeleton">
+              <div className="pimg" style={{ background: 'var(--bg3)', height: 150 }} />
+            </div>
+          ))}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main>

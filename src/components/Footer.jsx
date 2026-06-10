@@ -5,7 +5,7 @@ export default function Footer() {
     <footer>
       <div className="foot-in">
         <div className="fc">
-          <div className="brand-title">Sweet Headshop</div>
+          <div className="brand-title">Capivara Smoke</div>
           <span className="sub-text">CNPJ: 38.240.088/0001-91</span>
           <p style={{ marginTop: 8 }}>
             <MapPin size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} aria-hidden="true" />
@@ -31,9 +31,9 @@ export default function Footer() {
             <Phone size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} aria-hidden="true" />
             (11) 97651-9275
           </a>
-          <a href="mailto:contato@tabacariasweet.com.br">
+          <a href="mailto:contato@capivarasmoke.com.br">
             <Mail size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} aria-hidden="true" />
-            contato@tabacariasweet.com.br
+            contato@capivarasmoke.com.br
           </a>
           <h4 style={{ marginTop: 14 }}>Minha Conta</h4>
           <a href="#">
@@ -80,7 +80,7 @@ export default function Footer() {
           <div className="shop-card">
             <img
               src="https://images.unsplash.com/photo-1603344185739-e022dfccbc44?q=80&w=600&auto=format&fit=crop"
-              alt="Sweet Headshop Loja Física"
+              alt="Capivara Smoke Loja Física"
             />
             <div className="shop-card-body">Venha conhecer nosso espaço na Vila Romana</div>
           </div>
@@ -88,7 +88,7 @@ export default function Footer() {
       </div>
 
       <div className="foot-bot">
-        © 2026 Sweet Headshop · Venda proibida para menores de 18 anos
+        © 2026 Capivara Smoke · Venda proibida para menores de 18 anos
       </div>
     </footer>
   );

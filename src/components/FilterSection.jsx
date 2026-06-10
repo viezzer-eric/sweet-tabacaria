@@ -1,25 +1,50 @@
-import { PRODUCTS_DATA, CATEGORY_NAMES } from '../data/products';
+import { useState, useEffect } from 'react';
+import { Flame, FileText, Settings, Soup, Gift } from 'lucide-react';
+import * as client from '../api/client';
+
+const FALLBACK_ICONS = {
+  Kits: Gift,
+  Sedas: FileText,
+  Trituradores: Settings,
+  Isqueiros: Flame,
+  Acessórios: Soup,
+};
 
 export default function FilterSection({ activeCategory, onSetCategory }) {
-  const categories = ['all', ...new Set(PRODUCTS_DATA.map((p) => p.category))];
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    client.fetchCategories()
+      .then((data) => setCategories(data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="filter-section" />;
 
   return (
     <div className="filter-section">
       <div className="filter-inner">
         <div className="filter-grid" id="filterGrid">
+          <button
+            className={`f-btn${activeCategory === 'all' ? ' active' : ''}`}
+            onClick={() => onSetCategory('all')}
+          >
+            <span>{categories.length > 0 ? 'Ver Tudo' : 'Todos'}</span>
+            <span className="f-count">{categories.reduce((s, c) => s + (c.productCount || 0), 0) || '—'}</span>
+          </button>
           {categories.map((cat) => {
-            const count =
-              cat === 'all'
-                ? PRODUCTS_DATA.length
-                : PRODUCTS_DATA.filter((p) => p.category === cat).length;
+            const IconComp = FALLBACK_ICONS[cat.name];
             return (
               <button
-                key={cat}
-                className={`f-btn${activeCategory === cat ? ' active' : ''}`}
-                onClick={() => onSetCategory(cat)}
+                key={cat.slug}
+                className={`f-btn${activeCategory === cat.slug ? ' active' : ''}`}
+                onClick={() => onSetCategory(cat.slug)}
               >
-                <span>{CATEGORY_NAMES[cat] || cat}</span>
-                <span className="f-count">{count}</span>
+                {IconComp && <IconComp size={16} aria-hidden="true" />}
+                <span>{cat.name}</span>
+                <span className="f-count">{cat.productCount || '—'}</span>
               </button>
             );
           })}
